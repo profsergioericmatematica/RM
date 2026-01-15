@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Alunos - RM</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        
+        /* Layout do Formulário */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Botões */
+        .actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; flex: 1; }
+        .btn-save { background-color: #28a745; } /* Verde */
+        .btn-new { background-color: #007bff; } /* Azul */
+        .btn-del { background-color: #dc3545; } /* Vermelho */
+        .btn-down { background-color: #17a2b8; } /* Ciano */
+        .btn-search { background-color: #6c757d; } /* Cinza */
+        button:hover { opacity: 0.9; }
+
+        /* Tabela de Busca */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        tr:hover { background-color: #f1f1f1; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ficha de Aluno</h2>
+    
+    <div class="form-grid">
+        <div>
+            <label>RM</label>
+            <input type="text" id="txtRM">
+        </div>
+        <div>
+            <label>RA</label>
+            <input type="text" id="txtRA">
+        </div>
+        <div class="full-width">
+            <label>Nome do Aluno</label>
+            <input type="text" id="txtNome">
+        </div>
+        <div class="full-width">
+            <label>Observação</label>
+            <textarea id="txtObs" rows="3"></textarea>
+        </div>
+        <div>
+            <label>Req. Histórico</label>
+            <input type="text" id="txtReqHist">
+        </div>
+        <div>
+            <label>Histórico</label>
+            <input type="text" id="txtHist">
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-new" onclick="novoRegistro()">Novo / Limpar</button>
+        <button class="btn-save" onclick="salvarRegistro()">Salvar</button>
+        <button class="btn-del" onclick="excluirRegistro()">Excluir</button>
+        <button class="btn-down" onclick="baixarExcel()">Baixar Planilha</button>
+    </div>
+
+    <h3 style="margin-top:30px">Lista de Alunos (Clique para editar)</h3>
+    <input type="text" id="txtBusca" placeholder="Digite o nome para buscar..." onkeyup="filtrarTabela()" style="margin-bottom: 10px;">
+    
+    <thead>
+        <table id="tabelaAlunos">
+            <thead>
+                <tr>
+                    <th>RM</th>
+                    <th>Nome</th>
+                    <th>RA</th>
+                </tr>
+            </thead>
+            <tbody id="corpoTabela">
+                </tbody>
+        </table>
+    </thead>
+</div>
+
+<script>
+    // Banco de dados na memória do navegador
+    let alunos = JSON.parse(localStorage.getItem('bdAlunos')) || [];
+    let alunoEditandoIndex = -1; // -1 significa que estamos criando um novo
+
+    // Carrega a tabela ao abrir
+    atualizarTabela();
+
+    function salvarRegistro() {
+        let rm = document.getElementById('txtRM').value;
+        let nome = document.getElementById('txtNome').value;
+
+        if (!rm || !nome) {
+            alert("Por favor, preencha pelo menos RM e Nome.");
+            return;
+        }
+
+        let aluno = {
+            rm: rm,
+            ra: document.getElementById('txtRA').value,
+            nome: nome,
+            obs: document.getElementById('txtObs').value,
+            reqHist: document.getElementById('txtReqHist').value,
+            hist: document.getElementById('txtHist').value
+        };
+
+        if (alunoEditandoIndex === -1) {
+            // Novo registro
+            alunos.push(aluno);
+        } else {
+            // Editando existente
+            alunos[alunoEditandoIndex] = aluno;
+        }
+
+        salvarNoNavegador();
+        novoRegistro(); // Limpa a tela
+        alert("Aluno salvo com sucesso!");
+    }
+
+    function excluirRegistro() {
+        if (alunoEditandoIndex === -1) {
+            alert("Selecione um aluno na lista abaixo para excluir.");
+            return;
+        }
+        if (confirm("Tem certeza que deseja excluir este aluno?")) {
+            alunos.splice(alunoEditandoIndex, 1);
+            salvarNoNavegador();
+            novoRegistro();
+        }
+    }
+
+    function novoRegistro() {
+        document.getElementById('txtRM').value = "";
+        document.getElementById('txtRA').value = "";
+        document.getElementById('txtNome').value = "";
+        document.getElementById('txtObs').value = "";
+        document.getElementById('txtReqHist').value = "";
+        document.getElementById('txtHist').value = "";
+        alunoEditandoIndex = -1;
+    }
+
+    function carregarAluno(index) {
+        let aluno = alunos[index];
+        document.getElementById('txtRM').value = aluno.rm;
+        document.getElementById('txtRA').value = aluno.ra;
+        document.getElementById('txtNome').value = aluno.nome;
+        document.getElementById('txtObs').value = aluno.obs;
+        document.getElementById('txtReqHist').value = aluno.reqHist;
+        document.getElementById('txtHist').value = aluno.hist;
+        alunoEditandoIndex = index;
+        
+        // Rola a tela para cima
+        window.scrollTo(0,0);
+    }
+
+    function salvarNoNavegador() {
+        localStorage.setItem('bdAlunos', JSON.stringify(alunos));
+        atualizarTabela();
+    }
+
+    function atualizarTabela() {
+        let tbody = document.getElementById('corpoTabela');
+        tbody.innerHTML = "";
+        
+        alunos.forEach((aluno, index) => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${aluno.rm}</td><td>${aluno.nome}</td><td>${aluno.ra}</td>`;
+            tr.onclick = () => carregarAluno(index);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filtrarTabela() {
+        let termo = document.getElementById('txtBusca').value.toLowerCase();
+        let trs = document.getElementById('corpoTabela').getElementsByTagName('tr');
+
+        for (let i = 0; i < alunos.length; i++) {
+            let nome = alunos[i].nome.toLowerCase();
+            let rm = alunos[i].rm.toString();
+            if (nome.includes(termo) || rm.includes(termo)) {
+                trs[i].style.display = "";
+            } else {
+                trs[i].style.display = "none";
+            }
+        }
+    }
+
+    function baixarExcel() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "RM,RA,Nome,Observacao,Req Historico,Historico\n"; // Cabeçalho
+
+        alunos.forEach(function(row) {
+            let rowStr = `${row.rm},${row.ra},"${row.nome}","${row.obs}",${row.reqHist},${row.hist}`;
+            csvContent += rowStr + "\n";
+        });
+
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "lista_alunos.csv");
+        document.body.appendChild(link);
+        link.click();
+    }
+</script>
+
+</body>
+</html>
