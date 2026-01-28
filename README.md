@@ -6,7 +6,7 @@
 
 ## 🎯 Sobre o Projeto
 
-O projeto **RM** tem como objetivo centralizar o desenvolvimento  de Registro de Matrículas.
+O projeto tem como objetivo centralizar o desenvolvimento  de Registro de Matrículas.
 
 ## 🛠️ Tecnologias e Ferramentas
 
